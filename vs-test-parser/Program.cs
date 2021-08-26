@@ -38,7 +38,7 @@ namespace vs_test_parser
 					{
 						if (reader.NodeType == XmlNodeType.Element && reader.Name == "test-case")
 						{
-							var ti = new TestInfo() { Name = reader.GetAttribute("name"), Class = reader.GetAttribute("classname"), Duration = float.Parse(reader.GetAttribute("duration")) , Category= category };
+							var ti = new TestInfo() { Name = reader.GetAttribute("name"), Class = reader.GetAttribute("classname"), Duration = float.Parse(reader.GetAttribute("duration")), Category = category };
 							infos.Add(ti);
 						}
 					}
@@ -75,7 +75,14 @@ namespace vs_test_parser
 				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds} Total: {c.TotalSeconds}");
 			}
 
+			Console.WriteLine($"\nTotal Test Time: {GetTotalTime(infos):N0} seconds, {GetTotalTime(infos) / 60:N2} mins, {GetTotalTime(infos) / 60 / 60:N3} hours");
+
 			Console.ReadKey();
+		}
+
+		private static float GetTotalTime(List<TestInfo> infos)
+		{
+			return infos.Sum(i => i.Duration);
 		}
 
 		private static IEnumerable<CategoryInfo> GetCategoryInfo(List<TestInfo> infos)
@@ -83,7 +90,7 @@ namespace vs_test_parser
 			var categories = infos.Select(i => i.Category).Distinct();
 
 			var catInfoList = new List<CategoryInfo>();
-			foreach(var cat in categories)
+			foreach (var cat in categories)
 			{
 				var catInfos = infos.Where(i => i.Category == cat);
 				var ci = new CategoryInfo();
