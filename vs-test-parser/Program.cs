@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace vs_test_parser
@@ -14,14 +16,28 @@ namespace vs_test_parser
 
 		static void Main(string[] args)
 		{
-			Console.WriteLine("Hello World!");
+			/*
+			- get categories attribs from source
+			- generate BAT file from above to run tests
+			- run tests
+			- analyze output
+			*/
 
-			XmlReaderSettings settings = new XmlReaderSettings();
+			var sourceDirectory = @"C:\www\sensei-core\UnitTests";
+			var batchFileTargetFolder = @"C:\Users\darcy\SynologyDrive\work\Sensei\Unit Testing";
+			var nunitOutputFolder = @"C:\www\sensei-core\Utils\NUnit.org\nunit-console";
+			var unitTestAssemblyPath = @"C:\www\sensei-core\Web\bin\UnitTests.dll";
+			var testFilePrefix = @"TestResult-";
+
+			var cats = GetAllCategories(sourceDirectory);
+			
+			GenerateBatchFile(cats, batchFileTargetFolder, nunitOutputFolder, unitTestAssemblyPath, testFilePrefix);
+			
+			var settings = new XmlReaderSettings();
 			settings.IgnoreWhitespace = true;
 
 			float minDuration = 0.1F;
 			var testFileDirectory = @"C:\www\sensei-core\Utils\NUnit.org\nunit-console";
-			var testFilePrefix = @"TestResult-";
 
 			var files = Directory.GetFiles(testFileDirectory, $"{testFilePrefix}*.xml");
 
@@ -77,12 +93,19 @@ namespace vs_test_parser
 
 			Console.WriteLine($"\nTotal Test Time: {GetTotalTime(infos):N0} seconds, {GetTotalTime(infos) / 60:N2} mins, {GetTotalTime(infos) / 60 / 60:N3} hours");
 
+
+			Console.WriteLine("Done");
 			Console.ReadKey();
 		}
 
-		private static float GetTotalTime(List<TestInfo> infos)
+		private static void GenerateBatchFile(IEnumerable<string> cats, string batchFileTargetFolder, string nunitOutputFolder, string unitTestAssemblyPath, string testFilePrefix)
 		{
-			return infos.Sum(i => i.Duration);
+			var output = new StringBuilder();
+			output.AppendLine($"c:");
+			output.AppendLine($"cd {nunitOutputFolder}");
+			foreach (var cat in cats)
+				output.AppendLine(@$"nunit3-console.exe ""{unitTestAssemblyPath}"" --where ""cat == {cat}"" --result={testFilePrefix}{cat}.xml");
+			File.WriteAllText(Path.Combine(batchFileTargetFolder, "go.bat"), output.ToString());
 		}
 
 		private static IEnumerable<CategoryInfo> GetCategoryInfo(List<TestInfo> infos)
@@ -121,6 +144,31 @@ namespace vs_test_parser
 			return infos
 				.OrderByDescending(i => i.Duration)
 				.Take(count);
+		}
+
+		private static IEnumerable<string> GetAllCategories(string sourceDirectory)
+		{
+			var catRegex = @"\s*\[\s*Category\s*\(\s*""([a-zA-Z]+)""\s*\)\s*\]";
+			var files = Directory.GetFiles(sourceDirectory, "*.cs", SearchOption.AllDirectories);
+
+			var cats = new HashSet<string>();
+
+			foreach (var file in files)
+			{
+				var source = File.ReadAllText(file);
+				var matches = Regex.Matches(source, catRegex);
+				foreach (Match match in matches)
+				{
+					foreach (var v in match.Groups.Values.Skip(1))
+						cats.UnionWith(match.Groups.Values.Skip(1).Select(v => v.Value));
+				}
+			}
+			return cats.OrderBy(c => c);
+		}
+
+		private static float GetTotalTime(List<TestInfo> infos)
+		{
+			return infos.Sum(i => i.Duration);
 		}
 	}
 }
