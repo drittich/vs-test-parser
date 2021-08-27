@@ -76,20 +76,16 @@ namespace vs_test_parser
 
 			var ci = GetCategoryInfo(infos);
 
-			var top5AverageSlowestCats = ci.OrderByDescending(ci => ci.AverageSeconds).Take(5);
-			Console.WriteLine("Average Slowest");
-			foreach (var c in top5AverageSlowestCats)
-			{
+			var averageSlowestCats = ci.OrderByDescending(ci => ci.AverageSeconds).Take(5);
+			Console.WriteLine("Slowest Category (Average)");
+			foreach (var c in averageSlowestCats)
 				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds} Total: {c.TotalSeconds}");
-			}
 			Console.WriteLine("");
 
-			var top5TotalSlowestCats = ci.OrderByDescending(ci => ci.TotalSeconds).Take(5);
-			Console.WriteLine("Total Slowest");
-			foreach (var c in top5TotalSlowestCats)
-			{
+			var slowestCats = ci.OrderByDescending(ci => ci.TotalSeconds).Take(5);
+			Console.WriteLine("Slowest Category (Total)");
+			foreach (var c in slowestCats)
 				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds} Total: {c.TotalSeconds}");
-			}
 
 			Console.WriteLine($"\nTotal Test Time: {GetTotalTime(infos):N0} seconds, {GetTotalTime(infos) / 60:N2} mins, {GetTotalTime(infos) / 60 / 60:N3} hours");
 
