@@ -33,6 +33,8 @@ namespace vs_test_parser
 			
 			GenerateBatchFile(cats, batchFileTargetFolder, nunitOutputFolder, unitTestAssemblyPath, testFilePrefix);
 			
+			// RUN THE BATCH FILE TO GEN UNIT TEST REPORTS, THEN RE-RUN THIS APP
+
 			var settings = new XmlReaderSettings();
 			settings.IgnoreWhitespace = true;
 
@@ -61,33 +63,35 @@ namespace vs_test_parser
 				}
 			}
 
+			var topCount = 50;
 			var sortedInfos = infos
 				.Where(i => i.Duration > minDuration)
 				.OrderByDescending(i => i.Duration)
-				.Take(50);
+				.Take(topCount);
 
+			Console.WriteLine($"Top {topCount} slowest tests (seconds)");
 			foreach (var info in sortedInfos)
 			{
 				Console.WriteLine($"classname: {info.Class}");
 				Console.WriteLine($"Name: {info.Name}");
-				Console.WriteLine($"Duration: {info.Duration.ToString()}");
+				Console.WriteLine($"Duration: {info.Duration:N2}");
 				Console.WriteLine($"");
 			}
 
 			var ci = GetCategoryInfo(infos);
 
 			var averageSlowestCats = ci.OrderByDescending(ci => ci.AverageSeconds).Take(5);
-			Console.WriteLine("Slowest Category (Average)");
+			Console.WriteLine("Slowest Category (avg seconds)");
 			foreach (var c in averageSlowestCats)
-				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds} Total: {c.TotalSeconds}");
+				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds:N2} Total: {c.TotalSeconds:N2}");
 			Console.WriteLine("");
 
 			var slowestCats = ci.OrderByDescending(ci => ci.TotalSeconds).Take(5);
-			Console.WriteLine("Slowest Category (Total)");
+			Console.WriteLine("Slowest Category (total seconds)");
 			foreach (var c in slowestCats)
-				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds} Total: {c.TotalSeconds}");
+				Console.WriteLine($"Cat: {c.Category} Avg: {c.AverageSeconds:N2} Total: {c.TotalSeconds:N2}");
 
-			Console.WriteLine($"\nTotal Test Time: {GetTotalTime(infos):N0} seconds, {GetTotalTime(infos) / 60:N2} mins, {GetTotalTime(infos) / 60 / 60:N3} hours");
+			Console.WriteLine($"\nTotal Test Time: {GetTotalTime(infos):N0} seconds, {GetTotalTime(infos) / 60:N2} mins, {GetTotalTime(infos) / 60 / 60:N2} hours");
 
 
 			Console.WriteLine("Done");
