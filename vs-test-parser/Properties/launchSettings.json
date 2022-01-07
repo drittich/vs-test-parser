@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "vs-test-parser": {
+      "commandName": "Project",
+      "commandLineArgs": "--test-report-path \"C:\\Users\\darcy\\SynologyDrive\\work\\Sensei\\Unit Testing\\TestResults2022-01-07\""
+    }
+  }
+}

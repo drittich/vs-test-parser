@@ -10,38 +10,38 @@ namespace vs_test_parser
 {
 	class Program
 	{
-		// TODO: get total run time for each category
-		// TODO: show top 5 slowest run times for each category
-		// TODO: average run times for each category
-
-		static void Main(string[] args)
+		static void Main(string sourcePath, string batchFilePath, string testReportPath, string nunitPath, string unitTestAssemblyPath, bool generateBatchFile = false)
 		{
 			/*
-			- get categories attribs from source
-			- generate BAT file from above to run tests
-			- run tests
-			- analyze output
+			Run something like this to generate the batch file which generates the unit test report data:
+			
+			vs-test-parser.exe --generate-batch-file true --unit-test-assembly-path "C:\www\sensei-core\Web\bin\UnitTests.dll" --source-path "C:\www\sensei-core\UnitTests" --batch-file-path "C:\temp" --test-report-path "C:\Users\darcy\SynologyDrive\work\Sensei\Unit Testing\TestResults2022-01-07" --nunit-path "C:\www\sensei-core\Utils\NUnit.org\nunit-console" 
+
+			Then execute the batch file, which takes about 40 minutes. If there are test categories throwing exceptions and halting the run, you can comment out those categories in the batch file. Once the run is complete, run a command like this:
+
+			vs-test-parser.exe --test-report-path "C:\Users\darcy\SynologyDrive\work\Sensei\Unit Testing\TestResults2022-01-07"
+
 			*/
 
-			var sourceDirectory = @"C:\www\sensei-core\UnitTests";
-			var batchFileTargetFolder = @"C:\Users\darcy\SynologyDrive\work\Sensei\Unit Testing";
-			var nunitOutputFolder = @"C:\www\sensei-core\Utils\NUnit.org\nunit-console";
-			var unitTestAssemblyPath = @"C:\www\sensei-core\Web\bin\UnitTests.dll";
 			var testFilePrefix = @"TestResult-";
 
-			var cats = GetAllCategories(sourceDirectory);
-			
-			GenerateBatchFile(cats, batchFileTargetFolder, nunitOutputFolder, unitTestAssemblyPath, testFilePrefix);
-			
-			// RUN THE BATCH FILE TO GEN UNIT TEST REPORTS, THEN RE-RUN THIS APP
+
+			if (generateBatchFile)
+			{
+
+				var filePath = GenerateBatchFile(sourcePath, batchFilePath, nunitPath, unitTestAssemblyPath, testFilePrefix, testReportPath);
+				Console.WriteLine($"Batch file created at {filePath}");
+				Console.WriteLine($"This will generate the report files in {testReportPath}");
+				Console.WriteLine("Execute the batch file and then re-run this application to parse the test results");
+				Environment.Exit(0);
+			}
 
 			var settings = new XmlReaderSettings();
 			settings.IgnoreWhitespace = true;
 
 			float minDuration = 0.1F;
-			var testFileDirectory = @"C:\www\sensei-core\Utils\NUnit.org\nunit-console";
 
-			var files = Directory.GetFiles(testFileDirectory, $"{testFilePrefix}*.xml");
+			var files = Directory.GetFiles(testReportPath, $"{testFilePrefix}*.xml");
 
 			var infos = new List<TestInfo>();
 
@@ -49,7 +49,7 @@ namespace vs_test_parser
 			{
 				var category = Path.GetFileNameWithoutExtension(file).Substring(testFilePrefix.Length);
 
-				using (var fileStream = File.OpenText(Path.Combine(testFileDirectory, file)))
+				using (var fileStream = File.OpenText(Path.Combine(testReportPath, file)))
 				using (XmlReader reader = XmlReader.Create(fileStream, settings))
 				{
 					while (reader.Read())
@@ -98,14 +98,17 @@ namespace vs_test_parser
 			Console.ReadKey();
 		}
 
-		private static void GenerateBatchFile(IEnumerable<string> cats, string batchFileTargetFolder, string nunitOutputFolder, string unitTestAssemblyPath, string testFilePrefix)
+		private static string GenerateBatchFile(string sourcePath, string batchFileTargetFolder, string nunitOutputFolder, string unitTestAssemblyPath, string testFilePrefix, string testReportPath)
 		{
+			var cats = GetAllCategories(sourcePath);
 			var output = new StringBuilder();
 			output.AppendLine($"c:");
 			output.AppendLine($"cd {nunitOutputFolder}");
 			foreach (var cat in cats)
-				output.AppendLine(@$"nunit3-console.exe ""{unitTestAssemblyPath}"" --where ""cat == {cat}"" --result={testFilePrefix}{cat}.xml");
-			File.WriteAllText(Path.Combine(batchFileTargetFolder, "go.bat"), output.ToString());
+				output.AppendLine(@$"nunit3-console.exe ""{unitTestAssemblyPath}"" --where ""cat == {cat}"" --result=""{Path.Combine(testReportPath, testFilePrefix + cat + ".xml")}""");
+			var batchFilePath = Path.Combine(batchFileTargetFolder, "generate-test-reports.bat");
+			File.WriteAllText(batchFilePath, output.ToString());
+			return batchFilePath;
 		}
 
 		private static IEnumerable<CategoryInfo> GetCategoryInfo(List<TestInfo> infos)
@@ -137,13 +140,6 @@ namespace vs_test_parser
 		{
 			float averageSeconds = catInfos.Average(i => i.Duration);
 			return averageSeconds;
-		}
-
-		IEnumerable<TestInfo> GetTopNSlowest(IEnumerable<TestInfo> infos, int count)
-		{
-			return infos
-				.OrderByDescending(i => i.Duration)
-				.Take(count);
 		}
 
 		private static IEnumerable<string> GetAllCategories(string sourceDirectory)
