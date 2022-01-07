@@ -50,7 +50,7 @@ namespace vs_test_parser
 				var category = Path.GetFileNameWithoutExtension(file).Substring(testFilePrefix.Length);
 
 				using (var fileStream = File.OpenText(Path.Combine(testReportPath, file)))
-				using (XmlReader reader = XmlReader.Create(fileStream, settings))
+				using (var reader = XmlReader.Create(fileStream, settings))
 				{
 					while (reader.Read())
 					{
@@ -62,6 +62,11 @@ namespace vs_test_parser
 					}
 				}
 			}
+
+			Console.WriteLine($"Total test count: {infos.Count:N0}");
+
+			var csvPath = SaveToCsv(infos, testReportPath);
+			Console.WriteLine($"Saved {csvPath}");
 
 			var topCount = 50;
 			var sortedInfos = infos
@@ -96,6 +101,21 @@ namespace vs_test_parser
 
 			Console.WriteLine("Done");
 			Console.ReadKey();
+		}
+
+		private static string SaveToCsv(List<TestInfo> infos, string testReportPath)
+		{
+			var path = Path.Combine(testReportPath, "TestResults.csv");
+
+			using (var tw = new StreamWriter(path))
+			{
+				tw.WriteLine("category,class,test,durationSeconds");
+				foreach (var info in infos)
+					tw.WriteLine($"{info.Category},{info.Class},\"{info.Name}\",{info.Duration}");
+				tw.Close();
+			}
+
+			return path;
 		}
 
 		private static string GenerateBatchFile(string sourcePath, string batchFileTargetFolder, string nunitOutputFolder, string unitTestAssemblyPath, string testFilePrefix, string testReportPath)
